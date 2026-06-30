@@ -1,3 +1,7 @@
 /.venv/
 /.vscode/
 /data/
+/config/
+/.idea/
+__pycache__/
+.pytest_cache/

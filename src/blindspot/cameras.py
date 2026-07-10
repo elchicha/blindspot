@@ -49,9 +49,15 @@ class CameraManager:
         last_connect = cam.get("last_connect", {})
 
         return {
+            "name": cam.get("name"),
+            "status": cam.get("status"),
             "wifi_strength": signals.get("wifi_rssi"),
-            "battery_voltage": last_connect.get("battery_voltage"),
-            "battery_state": signals.get("battery_state"),
+            "battery_voltage": cam.get("battery_voltage"),
+            "battery_state": cam.get("battery_state"),
+            "battery_drain_rate": round(
+                last_connect.get("pir_rejections", 0) / cam.get("battery_voltage", 1), 1
+            ),
+            "last_connect_at": last_connect.get("updated_at"),
             "temperature": signals.get("temp"),
             "offline_alert_count": cam.get("offline_alert_count"),
             "last_offline_alert": cam.get("last_offline_alert"),

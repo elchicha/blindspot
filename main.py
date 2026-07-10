@@ -19,8 +19,9 @@ async def main():
 
     for name, camera in blink.cameras.items():
         config = await cameras.get_config(camera)
-        status = await cameras.get_status(camera)
+        status = await cameras.get_camera_status(camera)
         print(f"\n{name}:")
+        print(f"  Status             : {status['status']}")
         print(f"  Motion sensitivity : {config['motion_sensitivity']}")
         print(f"  Video quality      : {config['video_quality']}")
         print(f"  Night vision       : {config['illuminator_enable']}")
@@ -28,10 +29,12 @@ async def main():
         print(
             f"  Battery            : {status['battery_state']} ({status['battery_voltage']}v)"
         )
+        print(f"  Battery Drain Rate : {status['battery_drain_rate']}")
         print(f"  Temperature        : {status['temperature']}°F")
         print(f"  IP                 : {status['ip_address']}")
         print(f"  PIR rejections     : {status['pir_rejections']}")
         print(f"  Offline count      : {status['offline_alert_count']}")
+        print(f"  Last Connected     : {status['last_connect_at']}")
 
     await blink.auth.session.close()
 

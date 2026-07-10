@@ -22,10 +22,13 @@ class TestCameraManager:
 
     @pytest.fixture
     def mock_config_response(self):
-        # real data from your Street camera
         return {
             "camera": [
                 {
+                    "name": "Street",
+                    "status": "offline",
+                    "battery_state": "ok",
+                    "battery_voltage": 150,
                     "motion_sensitivity": 7,
                     "motion_alert": True,
                     "video_length": 10,
@@ -128,6 +131,10 @@ class TestCameraManager:
 
             manager = CameraManager(mock_blink)
             status = await manager.get_camera_status(mock_camera)
+
+        # camera
+        assert status["status"] == "offline"
+        assert status["name"] == "Street"
 
         # hardware state
         assert status["wifi_strength"] == -59  # wifi dBm

@@ -118,3 +118,49 @@ class TestEvaluateCameraHealth:
 
         assert result["level"] == "needs_attention"
         assert "camera has not checked in recently" in result["issues"]
+
+
+class TestEvaluateSyncModuleHealth:
+    @pytest.fixture
+    def healthy_sync_module(self):
+        return {
+            "status": "online",
+            "local_storage_status": "active",
+            "wifi_strength": 5,
+        }
+
+    @pytest.fixture
+    def needs_attention_sync_module(self):
+        return {"status": "online", "local_storage_status": "full", "wifi_strength": 2}
+
+    @pytest.fixture
+    def critical_sync_module(self):
+        return {
+            "status": "offline",
+            "local_storage_status": "active",
+            "wifi_strength": 5,
+        }
+
+    def test_evaluate_sync_module_health_healthy(self, healthy_sync_module):
+        from blindspot.dashboard import evaluate_sync_module_health
+
+        result = evaluate_sync_module_health(healthy_sync_module)
+        assert result["level"] == "healthy"
+        assert result["issues"] == []
+
+    def test_evaluate_sync_module_health_needs_attention(
+        self, needs_attention_sync_module
+    ):
+        from blindspot.dashboard import evaluate_sync_module_health
+
+        result = evaluate_sync_module_health(needs_attention_sync_module)
+        assert result["level"] == "needs_attention"
+        assert "sync module wifi signal is weak" in result["issues"]
+        assert "SD card is not active" in result["issues"]
+
+    def test_evaluate_sync_module_health_critical(self, critical_sync_module):
+        from blindspot.dashboard import evaluate_sync_module_health
+
+        result = evaluate_sync_module_health(critical_sync_module)
+        assert result["level"] == "critical"
+        assert "sync module is offline" in result["issues"]

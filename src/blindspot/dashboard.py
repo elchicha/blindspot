@@ -15,10 +15,12 @@ ISSUE_CAMERA_OFFLINE = "camera is offline"
 ISSUE_BATTERY_LOW = "battery is low"
 ISSUE_NOT_CHECKED_IN = "camera has not checked in recently"
 
-CRITICAL_ISSUES = {
-    ISSUE_CAMERA_OFFLINE,
-    ISSUE_BATTERY_LOW,
-}
+ISSUE_SYNC_MODULE_OFFLINE = "sync module is offline"
+ISSUE_SD_CARD_NOT_ACTIVE = "SD card is not active"
+ISSUE_SYNC_MODULE_WIFI_WEAK = "sync module wifi signal is weak"
+
+
+CRITICAL_ISSUES = {ISSUE_CAMERA_OFFLINE, ISSUE_BATTERY_LOW, ISSUE_SYNC_MODULE_OFFLINE}
 
 
 def _get_recent_check_in_issue(camera):
@@ -62,6 +64,24 @@ def evaluate_camera_health(camera):
     check_in_issue = _get_recent_check_in_issue(camera)
     if check_in_issue:
         issues.append(check_in_issue)
+
+    return {"level": _determine_health_level(issues), "issues": issues}
+
+
+def evaluate_sync_module_health(sync_module):
+    issues = []
+    sync_module_status = sync_module.get("status")
+    local_storage_status = sync_module.get("local_storage_status")
+    wifi_strength = sync_module.get("wifi_strength")
+
+    if sync_module_status == "offline":
+        issues.append(ISSUE_SYNC_MODULE_OFFLINE)
+
+    if local_storage_status != "active":
+        issues.append(ISSUE_SD_CARD_NOT_ACTIVE)
+
+    if wifi_strength is not None and wifi_strength <= 2:
+        issues.append(ISSUE_SYNC_MODULE_WIFI_WEAK)
 
     return {"level": _determine_health_level(issues), "issues": issues}
 

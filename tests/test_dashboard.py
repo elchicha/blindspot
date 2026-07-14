@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime, timezone, timedelta
 
 
 class TestMaintenanceDashboard:
@@ -63,32 +64,35 @@ class TestEvaluateCameraHealth:
 
     @pytest.fixture
     def healthy_camera(self):
+        recent = datetime.now(tz=timezone.utc) - timedelta(hours=1)
         return {
             "name": "Door",
             "status": "done",
             "battery_state": "ok",
             "wifi_strength": -45,
-            "last_connect_at": "2026-07-10T04:00:00+00:00",
+            "last_connect_at": recent.isoformat(),
         }
 
     @pytest.fixture
     def critical_camera(self):
+        stale = datetime.now(tz=timezone.utc) - timedelta(days=7)
         return {
             "name": "Street",
             "status": "offline",
             "battery_state": "low",
             "wifi_strength": -72,
-            "last_connect_at": "2026-07-10T04:00:00+00:00",
+            "last_connect_at": stale.isoformat(),
         }
 
     @pytest.fixture
     def needs_attention_camera(self):
+        recent = datetime.now(tz=timezone.utc) - timedelta(hours=25)
         return {
             "name": "Tree",
             "status": "done",
             "battery_state": "ok",
             "wifi_strength": -63,
-            "last_connect_at": "2026-06-10T04:00:00+00:00",
+            "last_connect_at": recent.isoformat(),
         }
 
     def test_evaluate_camera_health_healthy(self, healthy_camera):

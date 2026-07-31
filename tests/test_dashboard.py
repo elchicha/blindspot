@@ -10,20 +10,19 @@ class TestMaintenanceDashboard:
 
     @pytest.fixture
     def mock_camera_statuses(self):
+        recent = datetime.now(tz=timezone.utc) - timedelta(hours=1)
         return [
             {
-                "name": "Street",
-                "status": "offline",
-                "battery": "low",
-                "wifi_strength": 1,
-                "temperature": 96,
+                "name": "Door",
+                "status": "done",
+                "battery_state": "ok",
+                "last_connect_at": recent.isoformat(),
             },
             {
                 "name": "Tree",
                 "status": "done",
-                "battery": "ok",
-                "wifi_strength": 4,
-                "temperature": 68,
+                "battery_state": "ok",
+                "last_connect_at": recent.isoformat(),
             },
         ]
 
@@ -57,7 +56,7 @@ class TestMaintenanceDashboard:
             dashboard = MaintenanceDashboard(mock_blink)
             result = await dashboard.get_dashboard()
 
-        assert result["overall_health"] == "healthy"
+        assert result["overall_health"]["level"] == "healthy"
 
 
 class TestEvaluateCameraHealth:
@@ -164,3 +163,93 @@ class TestEvaluateSyncModuleHealth:
         result = evaluate_sync_module_health(critical_sync_module)
         assert result["level"] == "critical"
         assert "sync module is offline" in result["issues"]
+
+
+class TestEvaluateOverallHealth:
+
+    @pytest.fixture
+    def healthy_cameras(self):
+        recent = datetime.now(tz=timezone.utc) - timedelta(hours=1)
+        return [
+            {
+                "name": "Door",
+                "status": "done",
+                "battery_state": "ok",
+                "last_connect_at": recent.isoformat(),
+            },
+            {
+                "name": "Side Gate",
+                "status": "done",
+                "battery_state": "ok",
+                "last_connect_at": recent.isoformat(),
+            },
+        ]
+
+    @pytest.fixture
+    def healthy_sync_module(self):
+        return {
+            "status": "online",
+            "local_storage_status": "active",
+            "wifi_strength": 5,
+        }
+
+    def test_all_healthy(self, healthy_cameras, healthy_sync_module):
+        from blindspot.dashboard import _evaluate_overall_health
+
+        result = _evaluate_overall_health(healthy_cameras, healthy_sync_module)
+        assert result["level"] == "healthy"
+        assert result["critical_cameras"] == []
+        assert result["needs_attention_cameras"] == []
+
+    def test_camera_critical(self, healthy_sync_module):
+        recent = datetime.now(tz=timezone.utc) - timedelta(hours=1)
+        cameras = [
+            {
+                "name": "Tree",
+                "status": "offline",
+                "battery_state": "low",
+                "last_connect_at": recent.isoformat(),
+            },
+            {
+                "name": "Door",
+                "status": "done",
+                "battery_state": "ok",
+                "last_connect_at": recent.isoformat(),
+            },
+        ]
+        from blindspot.dashboard import _evaluate_overall_health
+
+        result = _evaluate_overall_health(cameras, healthy_sync_module)
+        assert result["level"] == "critical"
+        assert "Tree" in result["critical_cameras"]
+        assert "Door" not in result["critical_cameras"]
+
+    def test_sync_module_critical(self, healthy_cameras):
+        from blindspot.dashboard import _evaluate_overall_health
+
+        result = _evaluate_overall_health(
+            healthy_cameras,
+            {
+                "status": "offline",
+                "local_storage_status": "active",
+                "wifi_strength": 5,
+            },
+        )
+        assert result["level"] == "critical"
+        assert result["sync_module_level"] == "critical"
+
+    def test_camera_needs_attention(self, healthy_sync_module):
+        stale = datetime.now(tz=timezone.utc) - timedelta(hours=25)
+        cameras = [
+            {
+                "name": "Side Gate",
+                "status": "done",
+                "battery_state": "ok",
+                "last_connect_at": stale.isoformat(),
+            },
+        ]
+        from blindspot.dashboard import _evaluate_overall_health
+
+        result = _evaluate_overall_health(cameras, healthy_sync_module)
+        assert result["level"] == "needs_attention"
+        assert "Side Gate" in result["needs_attention_cameras"]

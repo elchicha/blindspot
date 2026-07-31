@@ -87,7 +87,35 @@ def evaluate_sync_module_health(sync_module):
 
 
 def _evaluate_overall_health(camera_statuses, sync_module_status):
-    return "healthy"
+    critical_cameras = []
+    needs_attention_cameras = []
+
+    # evaluate each camera
+    for camera in camera_statuses:
+        health = evaluate_camera_health(camera)
+        if health["level"] == CRITICAL_LEVEL:
+            critical_cameras.append(camera["name"])
+        elif health["level"] == NEEDS_ATTENTION_LEVEL:
+            needs_attention_cameras.append(camera["name"])
+
+    # evaluate sync module
+    sync_health = evaluate_sync_module_health(sync_module_status)
+
+    # determine overall level
+    if sync_health["level"] == CRITICAL_LEVEL or critical_cameras:
+        overall_level = CRITICAL_LEVEL
+    elif sync_health["level"] == NEEDS_ATTENTION_LEVEL or needs_attention_cameras:
+        overall_level = NEEDS_ATTENTION_LEVEL
+    else:
+        overall_level = HEALTHY_LEVEL
+
+    return {
+        "level": overall_level,
+        "critical_cameras": critical_cameras,
+        "needs_attention_cameras": needs_attention_cameras,
+        "sync_module_level": sync_health["level"],
+        "summary": f"{len(critical_cameras)} critical, {len(needs_attention_cameras)} need attention",
+    }
 
 
 class MaintenanceDashboard:

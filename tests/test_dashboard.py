@@ -44,7 +44,7 @@ class TestMaintenanceDashboard:
             patch("blindspot.dashboard.CameraManager") as MockCameraManager,
             patch("blindspot.dashboard.SyncModuleManager") as MockSyncModuleManager,
         ):
-            MockCameraManager.return_value.get_camera_status = AsyncMock(
+            MockCameraManager.return_value.get_all_camera_statuses = AsyncMock(
                 return_value=mock_camera_statuses
             )
             MockSyncModuleManager.return_value.get_sync_module_status = AsyncMock(

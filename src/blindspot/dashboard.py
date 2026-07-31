@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
-from blindspot.cameras import CameraManager
-from blindspot.sync import SyncModuleManager
+from .cameras import CameraManager
+from .sync import SyncModuleManager
 
 CRITICAL_LEVEL = "critical"
 NEEDS_ATTENTION_LEVEL = "needs_attention"

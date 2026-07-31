@@ -48,6 +48,26 @@ def _determine_health_level(issues):
     return HEALTHY_LEVEL
 
 
+def _get_recommendations(issues, camera):
+    recommendations = []
+
+    if ISSUE_CAMERA_OFFLINE in issues:
+        recommendations.append("Check battery level and replace if needed")
+
+    if ISSUE_BATTERY_LOW in issues:
+        recommendations.append("Replace batteries immediately")
+
+    if ISSUE_NOT_CHECKED_IN in issues:
+        if camera.get("status") == "offline":
+            recommendations.append("Camera is offline — check power and WiFi signal")
+        else:
+            recommendations.append(
+                "Camera online but not syncing — restart sync module or move it closer"
+            )
+
+    return recommendations
+
+
 def evaluate_camera_health(camera):
 
     issues = []
@@ -65,7 +85,11 @@ def evaluate_camera_health(camera):
     if check_in_issue:
         issues.append(check_in_issue)
 
-    return {"level": _determine_health_level(issues), "issues": issues}
+    return {
+        "level": _determine_health_level(issues),
+        "issues": issues,
+        "recommendations": _get_recommendations(issues, camera),
+    }
 
 
 def evaluate_sync_module_health(sync_module):
@@ -109,12 +133,16 @@ def _evaluate_overall_health(camera_statuses, sync_module_status):
     else:
         overall_level = HEALTHY_LEVEL
 
+    summary = f"{len(critical_cameras)} critical, {len(needs_attention_cameras)} need attention"
+    if sync_health["level"] == CRITICAL_LEVEL:
+        summary += " — SYNC MODULE OFFLINE"
+
     return {
         "level": overall_level,
         "critical_cameras": critical_cameras,
         "needs_attention_cameras": needs_attention_cameras,
         "sync_module_level": sync_health["level"],
-        "summary": f"{len(critical_cameras)} critical, {len(needs_attention_cameras)} need attention",
+        "summary": summary,
     }
 
 
@@ -150,10 +178,12 @@ def render_dashboard(result):
     print("-" * 55)
 
     for camera in result["cameras"]:
-        health = evaluate_camera_health(camera)
-        emoji = LEVEL_EMOJI[health["level"]]
-        issues = ", ".join(health["issues"]) if health["issues"] else "none"
-        print(f"  {camera['name']:<12} {emoji} {health['level']:<16} {issues}")
+        cam_health = evaluate_camera_health(camera)
+        emoji = LEVEL_EMOJI[cam_health["level"]]
+        issues = ", ".join(cam_health["issues"]) if cam_health["issues"] else "none"
+        print(f"  {camera['name']:<12} {emoji} {cam_health['level']:<16} {issues}")
+        for rec in cam_health.get("recommendations", []):
+            print(f"  {'':12}   → {rec}")
 
 
 class MaintenanceDashboard:

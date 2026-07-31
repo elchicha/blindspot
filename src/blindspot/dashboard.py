@@ -118,14 +118,53 @@ def _evaluate_overall_health(camera_statuses, sync_module_status):
     }
 
 
+def render_dashboard(result):
+    health = result["overall_health"]
+
+    LEVEL_EMOJI = {
+        HEALTHY_LEVEL: "🟢",
+        NEEDS_ATTENTION_LEVEL: "🟠",
+        CRITICAL_LEVEL: "🔴",
+    }
+
+    print("\n" + "=" * 55)
+    print("BLINDSPOT MAINTENANCE DASHBOARD")
+    print("=" * 55)
+
+    # overall health
+    emoji = LEVEL_EMOJI[health["level"]]
+    print(f"\nOVERALL: {emoji} {health['level'].upper()}")
+    print(f"  {health['summary']}")
+
+    # sync module
+    print(f"\nSYNC MODULE")
+    sync = result["sync_module"]
+    sync_emoji = LEVEL_EMOJI[result["overall_health"]["sync_module_level"]]
+    print(f"  Status         : {sync_emoji} {sync['status']}")
+    print(f"  Local Storage  : {sync['local_storage_status']}")
+    print(f"  WiFi           : {sync['wifi_strength']}/5")
+
+    # cameras
+    print(f"\nCAMERAS")
+    print(f"{'Camera':<12} {'Health':<18} {'Issues'}")
+    print("-" * 55)
+
+    for camera in result["cameras"]:
+        health = evaluate_camera_health(camera)
+        emoji = LEVEL_EMOJI[health["level"]]
+        issues = ", ".join(health["issues"]) if health["issues"] else "none"
+        print(f"  {camera['name']:<12} {emoji} {health['level']:<16} {issues}")
+
+
 class MaintenanceDashboard:
+
     def __init__(self, blink):
         self.blink = blink
         self.camera_manager = CameraManager(blink)
         self.sync_module_manager = SyncModuleManager(blink)
 
     async def get_dashboard(self):
-        camera_statuses = await self.camera_manager.get_camera_status()
+        camera_statuses = await self.camera_manager.get_all_camera_statuses()
         sync_module_status = await self.sync_module_manager.get_sync_module_status()
 
         return {

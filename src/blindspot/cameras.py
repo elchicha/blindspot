@@ -66,6 +66,13 @@ class CameraManager:
             "ip_address": last_connect.get("ip_address"),
         }
 
+    async def get_all_camera_statuses(self):
+        statuses = []
+        for name, camera in self.blink.cameras.items():
+            status = await self.get_camera_status(camera)
+            statuses.append(status)
+        return statuses
+
     async def get_sd_card_status(self):
         response = await api.request_homescreen(self.blink)
         data = await response.json()
